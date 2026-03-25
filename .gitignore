@@ -1,0 +1,13 @@
+.env
+
+caddy_tail/
+config/
+letsencrypt/
+minecraft/
+minecraft-data/
+miniflux-db/
+navidrome_data/
+radicale_config/
+radicale_data/
+tailscale/
+worlds/
