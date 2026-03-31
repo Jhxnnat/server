@@ -1,16 +1,4 @@
 services:
-  navidrome_music:
-    container_name: "navidrome_music"
-    image: deluan/navidrome:latest
-    restart: unless-stopped
-    ports:
-      - "4533:4533"
-    volumes:
-      - "./navidrome_data:/data"
-      - "/home/jhonatan/Música:/music:ro"
-    environment:
-      ND_BASEURL: https://music.jhx.homes
-  
   jellyfin:
     image: jellyfin/jellyfin
     container_name: jellyfin
@@ -18,160 +6,86 @@ services:
       - 8096:8096/tcp
       - 7359:7359/udp
     volumes:
-      - /home/jhonatan/.config/jellyfin/:/config
-      - /home/jhonatan/.cache/jellyfin/:/cache
+      - ./config/jellyfin/:/config
+      - ./cache/jellyfin/:/cache
       - type: bind
-        source: /home/jhonatan/Vídeos/YouTube
+        source: /home/jhonatan/Vídeos/Youtube
         target: /youtube
       - type: bind
         source: /home/jhonatan/Música
         target: /media2
         read_only: true
-      - type: bind
-        source: /home/jhonatan/Vídeos/Movies
-        target: /movies
+      # - type: bind
+      #   source: /home/jhonatan/Vídeos/Movies
+      #   target: /movies
     restart: 'unless-stopped'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
-  miniflux:
-    image: miniflux/miniflux:latest
-    ports:
-      - "8585:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      - DATABASE_URL=postgres://miniflux:secret@db/miniflux?sslmode=disable
-      - RUN_MIGRATIONS=1
-      # - CREATE_ADMIN=1
-      # - ADMIN_USERNAME=admin
-      # - ADMIN_PASSWORD=
-    healthcheck:
-      test: ["CMD", "/usr/bin/miniflux", "-healthcheck", "auto"]
-  db:
-    image: postgres:18
-    environment:
-      - POSTGRES_USER=miniflux
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=miniflux
-    volumes:
-      - ./miniflux-db:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "miniflux"]
-      interval: 10s
-      start_period: 30s
-
-  # MINECRAFT
-  mc:
-    image: itzg/minecraft-server:latest
-    user: "1001:1001"
-    tty: true
-    stdin_open: true
-    ports:
-      - "25565:25565"
-    environment:
-      EULA: "TRUE"
-      TYPE: "FABRIC"
-      MODRINTH_PROJECTS: |
-        fabric-api
-      # MODS: |
-      #   https://cdn.modrinth.com/data/ghrZDhGW/versions/leBCMyEe/skinrestorer-2.6.0%2B1.21.11-fabric.jar
-      MEMORY: "8192M"
-      ONLINE_MODE: "false"
-      TZ: "America/Bogota"
-      DIFFICULTY: "3"
-      SIMULATION_DISTANCE: "32"
-      VIEW_DISTANCE: "32"
-      SPAWN_PROTECTION: "0"
-      WORLD: "/worlds/world"
-    volumes:
-      - "./minecraft-data:/data"
-      - "./minecraft/world/TheSMP:/worlds/world"
-
-  radicale:
-    image: ghcr.io/kozea/radicale:stable
-    ports:
-      - 5232:5232
-    volumes:
-      - radicale_config:/etc/radicale
-      - radicale_data:/var/lib/radicale
-
-  wallabag:
-    image: wallabag/wallabag
+  navidrome_music:
+    container_name: "navidrome_music"
+    image: deluan/navidrome:latest
     restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=wallaroot
-      - SYMFONY__ENV__DATABASE_DRIVER=pdo_mysql
-      - SYMFONY__ENV__DATABASE_HOST=db-wallagab
-      - SYMFONY__ENV__DATABASE_PORT=3306
-      - SYMFONY__ENV__DATABASE_NAME=wallabag
-      - SYMFONY__ENV__DATABASE_USER=wallabag
-      - SYMFONY__ENV__DATABASE_PASSWORD=wallapass
-      - SYMFONY__ENV__DATABASE_CHARSET=utf8mb4
-      - SYMFONY__ENV__DATABASE_TABLE_PREFIX="wallabag_"
-      # - SYMFONY__ENV__MAILER_DSN=smtp://127.0.0.1
-      # - SYMFONY__ENV__FROM_EMAIL=wallabag@example.com
-      - SYMFONY__ENV__DOMAIN_NAME=http://fedora:8070
-      - SYMFONY__ENV__SERVER_NAME="Laptop wallabag instance"
     ports:
-      - "8070:80"
+      - "4533:4533"
     volumes:
-      - /opt/wallabag/images:/var/www/wallabag/web/assets/images
+      - ./data/navidrome:/data
+      - /home/jhonatan/Música:/music:ro
+
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      # Do not edit the next line. If you want to change the media storage location on your system, edit the value of UPLOAD_LOCATION in the .env file
+      - ${UPLOAD_LOCATION}:/data
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    ports:
+      - '2283:2283'
     depends_on:
-      - db-wallagab
       - redis
-  db-wallagab:
-    image: mariadb
-    restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=wallaroot
+      - database
+    restart: always
+    healthcheck:
+      disable: false
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     volumes:
-      - /opt/wallabag/data:/var/lib/mysql
+      - model-cache:/cache
+    env_file:
+      - .env
+    restart: always
     healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck.sh", "--innodb_initialized"]
-      interval: 20s
-      timeout: 3s
+      disable: false
+
   redis:
-    image: redis:alpine
-    restart: unless-stopped    
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:9@sha256:3eeb09785cd61ec8e3be35f8804c8892080f3ca21934d628abc24ee4ed1698f6
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 20s
-      timeout: 3s
+      test: redis-cli ping || exit 1
+    restart: always
 
-
-# configs:
-#   Caddyfile:
-#     content: |
-#       https://music.jhx.homes:443 {
-#         reverse_proxy 0.0.0.0:4533 {
-#           header_up Host {http.reverse_proxy.upstream.hostport}
-#           header_up X-Forwarded-For {http.request.remote}
-#           header_up X-Real-IP {http.reverse_proxy.upstream.port}
-#         }
-#       }
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: always
+    healthcheck:
+      disable: false
 
 volumes:
-  caddy_certs:
-  caddy_config:
-  caddy_data:
-  caddy_sites:
   navidrome_music:
     name: navidrome_music
-  miniflux-db:
-  radicale_config:
-    name: radicale_config
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./radicale_config
-  radicale_data:
-    name: radicale_data
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./radicale_data
+  model-cache:
+
 
