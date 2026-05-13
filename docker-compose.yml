@@ -4,7 +4,7 @@ services:
     container_name: jellyfin
     ports:
       - 8096:8096/tcp
-      - 7359:7359/udp
+      # - 7359:7359/udp
     volumes:
       - ./config/jellyfin/:/config
       - ./cache/jellyfin/:/cache
@@ -15,12 +15,17 @@ services:
         source: /home/jhonatan/Música
         target: /media2
         read_only: true
-      # - type: bind
-      #   source: /home/jhonatan/Vídeos/Movies
-      #   target: /movies
+      - type: bind
+        source: /home/jhonatan/Movies
+        target: /movies
+      - type: bind
+        source: /home/jhonatan/Shows/
+        target: /shows
     restart: 'unless-stopped'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+    network_mode: host
+    labels:
+      tsdproxy.enable: "true"
+      tsdproxy.name: "media"
 
   navidrome_music:
     container_name: "navidrome_music"
@@ -31,6 +36,9 @@ services:
     volumes:
       - ./data/navidrome:/data
       - /home/jhonatan/Música:/music:ro
+    labels:
+      tsdproxy.enable: "true"
+      tsdproxy.name: "music"
 
   immich-server:
     container_name: immich_server
@@ -49,6 +57,9 @@ services:
     restart: always
     healthcheck:
       disable: false
+    labels:
+      tsdproxy.enable: "true"
+      tsdproxy.name: "foto"
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -100,10 +111,39 @@ services:
       - 6881:6881/udp
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+  
+  prometheus:
+    container_name: prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - './data/prometheus:/etc/prometheus'
+    image: prom/prometheus
+  
+  tsdproxy:
+    image: almeidapaulopt/tsdproxy:2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - tsdproxy-data:/data
+      - ./config:/config
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
 
 volumes:
+  tsdproxy-data:
   navidrome_music:
     name: navidrome_music
   model-cache:
-
+  grafana-storage: {}
 
