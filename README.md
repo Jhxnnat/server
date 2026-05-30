@@ -5,7 +5,11 @@ Current services:
 - [Navidrome](https://www.navidrome.org/)
 - [Immich](https://immich.app/)
 - [Qbittorrent](https://qbittorrent.org/)
+- [TSDProxy](https://github.com/almeidapaulopt/tsdproxy)
 
-Services can be accesed outside of LAN by using Tailscale, reverse proxy configure with TSDProxy.
+Services can be accesed outside of LAN by using Tailscale, reverse proxy configured with TSDProxy.
 
-The laptop is also using syncthing but not as a container service *yet*.
+The laptop is also running the following software but without docker *yet*:
+- [Syncthing](https://syncthing.net/)
+- [Cockpit](https://cockpit-project.org/)
+ 
