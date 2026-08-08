@@ -1,3 +1,6 @@
+> [!CAUTION]
+> Currently paused because the old laptop died
+
 Config for my ongoing OLaaS (Old Laptop as a Server) project.
 
 Current configured services:
