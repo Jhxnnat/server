@@ -9,17 +9,17 @@ services:
       - ./config/jellyfin/:/config
       - ./cache/jellyfin/:/cache
       - type: bind
-        source: ${HOME}/Vídeos/Youtube
+        source: /home/${USERNAME}/Vídeos/Youtube
         target: /youtube
       - type: bind
-        source: ${HOME}/Música
+        source: /home/${USERNAME}/Música
         target: /media2
         read_only: true
       - type: bind
-        source: ${HOME}/Movies
+        source: /home/${USERNAME}/Movies
         target: /movies
       - type: bind
-        source: ${HOME}/Shows/
+        source: /home/${USERNAME}/Shows/
         target: /shows
     restart: 'unless-stopped'
     network_mode: host
@@ -35,7 +35,7 @@ services:
       - "4533:4533"
     volumes:
       - ./data/navidrome:/data
-      - ${HOME}/Música:/music:ro
+      - /home/${USERNAME}/Música:/music:ro
     labels:
       tsdproxy.enable: "true"
       tsdproxy.name: "music"
